@@ -1,0 +1,85 @@
+############## Install Wordpress #######################
+useradd wordpress 
+passwd wordpress
+
+mkdir -p /home/wordpress/www/html
+
+#create database
+mysql -u root -p
+
+create database db_wp;
+create user user_dbwp identified by 'qw12po09';
+grant all privileges on db_wp.* to user_dbwp identified by 'qw12po09';
+flush privileges;
+
+=======================================================================
+
+#Install wordress
+cd /home/wordpress/www/html
+pwd #Print Working Directory
+wget http://wordpress.org/latest.tar.gz
+tar --strip-components=1 -xvf latest.tar.gz
+
+cp wp-config-sample.php wp-config.php
+vim wp-config.php
+............
+define('DB_NAME', 'db_wp');
+define('DB_USER', 'user_dbwp');
+define('DB_PASSWORD', 'qw12po09');
+define('DB_HOST', 'localhost');
+................
+
+#ubah permission pada directory wodpress
+chown wordpress:wordpress /home/wordpress/ -R
+
+#berikan permisson pada direktori html ke nginx
+chown nginx:nginx /home/wordpress/www/html -R
+
+#memberikan hak akses 755 untuk setiap direktori dan 644 setiap file
+
+find /home/wordpress -type d -exec chmod 775 {} + #d = directory
+find /home/wordpress -type f -exec chmod 644 {} + #f = file
+
+#memberikan hak akses wordpress untuk mengedit html
+usermod -a -G nginx wordpress
+
+#membuat konfigurasi server block
+mkdir /etc/nginx/sites-available
+mkdir /etc/nginx/sites-enabled
+
+#Edit file nginx.conf
+vim /etc/nginx/nginx.conf
+......
+include /etc/nginx/sites-enabled/*.conf; #pada baris akhir
+......
+
+#buat file konfigurasi server block
+vim /etc/nginx/sites-available/wordpress.conf
+.....................
+server {
+    listen       80;
+    server_name  alan.web2;
+
+    location / {
+        root   /home/wordpress/www/html;
+        index index.php index.html index.htm;
+    }
+
+location ~ \.php$ {
+        root          /home/wordpress/www/html;
+        fastcgi_pass   127.0.0.1:9000;
+        fastcgi_index  index.php;
+        fastcgi_param  SCRIPT_FILENAME  home/wordpress/www/html$fastcgi_script_name;
+        include        /etc/nginx/fastcgi_params;
+    }
+
+}
+.................
+
+
+## symbolic link
+ln -s /etc/nginx/sites-available/wordpress.conf /etc/nginx/sites-enabled/wordpress.conf
+
+service php-fpm restart && service nginx restart
+
+
