@@ -1,0 +1,33 @@
+########### Install PhpMyAdmin ###########
+yum install epel-release
+yum install phpmyadmin
+## buat link symbolic
+ln -s /usr/share/phpMyAdmin/ /usr/share/nginx/html/
+
+#buat file server block phpmyadmin
+vim /etc/nginx/conf.d/phpmyadmin.conf
+.................
+server {
+listen       *:8080;
+server_name  alan.web1;
+
+location / {
+root   /usr/share/nginx/html/phpMyAdmin/;
+index index.php index.html index.htm;
+}
+
+location ~ \.php$ {
+root          /usr/share/nginx/html/phpMyAdmin;
+fastcgi_pass   127.0.0.1:9000;
+fastcgi_index  index.php;
+fastcgi_param  SCRIPT_FILENAME /usr/share/nginx/html/phpMyAdmin$fastcgi_script_name;
+include        /etc/nginx/fastcgi_params;
+}
+
+}
+.....................
+systemctl restart nginx php-fpm
+
+chmod 777 /var/lib/php/session/
+
+
