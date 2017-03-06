@@ -1,0 +1,71 @@
+yum install epel-release
+yum install haproxy
+
+cd /etc/haproxy/
+cp haproxy.cfg haproxy.cfg.orig
+rm haproxy.cfg -rf
+vim haproxy.cfg
+............................
+global
+        log     127.0.0.1 local2 info
+        chroot  /var/lib/haproxy
+        pidfile /var/run/haproxy.pid
+        maxconn 4098
+        user    haproxy
+        group   haproxy
+        daemon
+defaults
+        mode    http
+        option  forwardfor
+        option  http-server-close
+        log     global
+        option  httplog
+        timeout connect 10s
+        timeout client  30s
+        timeout server  30s
+
+frontend http-in
+        bind *:80
+        mode http
+        reqadd X-Forwarded-Proto:\ http
+        default_backend web_server
+        option forwardfor
+
+frontend web-admin
+        bind *:80
+        mode http
+        option http-server-close
+        acl url_web_admin path_beg      /wp-admin
+        use_backend web_admin if url_web_admin
+        default_backend web_server
+
+backend web_admin
+        mode http
+        reqrep ^([^\ :]*)\ /wordpress/(.*) \1\ /\2
+        balance roundrobin
+        server web1-master 43.245.180.235:80 check
+
+backend web_server
+        mode http
+        balance roundrobin
+        server  web1 43.245.180.235:80 check weight 50 #server backend 1
+        server  web2 43.245.180.238:80 check weight 50 #server backend 2
+
+listen statistics
+        bind *:8080
+        mode http
+        stats enable
+        stats show-desc Infinys Load balancer Status
+        stats uri /
+        stats auth      admin:juragan
+        stats hide-version
+        stats show-node
+        stats refresh 10s
+
+.................................
+
+
+#setting wp-config di sisi wordpress 
+
+define('WP_SITEURL', 'http://haproxy_www_public_IP');
+define('WP_HOME', 'http://haproxy_www_public_IP');
