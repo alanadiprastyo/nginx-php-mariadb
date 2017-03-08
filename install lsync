@@ -1,0 +1,35 @@
+Lsyncd - Live Syncing (Mirror) Daemon
+Server master(web1) ======================> Server backup (web2)
+
+#buat ssh public key
+ssh-keygen
+ssh-copy-id -i /root/.ssh/id_rsa.pub root@web02
+rpm -iUvh http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-9.noarch.rpm
+#install time sinkronisasi dengan chrony di server utama dan backup
+yum install chrony -y
+systemctl enable chronyd
+systemctl start chronyd
+systemctl status chronyd
+chronyc sources
+
+#install lsync di server master
+yum install lsyncd -y
+cp /etc/lsyncd.conf /etc/lsyncd.conf.orig
+vim /etc/lsyncd.conf
+.................
+settings = {
+ logfile = "/var/log/lsyncd.log",
+ statusFile = "/var/log/lsyncd.stat",
+ statusInterval = 2,
+}
+sync{
+ default.rsync,
+ sources="/home/wordpress/www/html",
+ target="43.245.180.238:/home/wordpress/www/html",
+ rsync={rsh ="/usr/bin/ssh -l root -i /root/.ssh/id_rsa",}
+}
+...............
+
+systemctl start lsyncd
+systemctl enable lsyncd
+systemctl status lsyncd
