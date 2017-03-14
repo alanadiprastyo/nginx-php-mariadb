@@ -1,0 +1,42 @@
+##install di NFS Server
+yum install epel-release
+yum install nfs-utils  -y
+
+systemctl start rpcbind
+systemctl start nfs-server
+systemctl start nfs-lock
+systemctl start nfs-idmap
+systemctl enable rpcbind
+systemctl enable nfs-server
+
+mkdir /sharedata
+chmod 777 /sharedata/
+
+vim /etc/exports
+....
+/sharedata/     43.245.180.0/24(rw,sync,no_root_squash,no_all_squash)
+....
+systemctl restart nfs-server
+systemctl status nfs-server
+#cek exportfsnya
+exportfs -u
+
+##install di NFS client
+yum install epel-release
+yum install nfs-utils  -y
+
+systemctl enable rpcbind
+systemctl start rpcbind
+showmount -e 43.245.180.239
+mkdir /dataweb
+mount 43.245.180.239:/sharedata /dataweb/
+showmount -e 43.245.180.239
+
+#migrasi data wordpress ke dataweb
+cp -R /home/wordpress/www/html/ /dataweb
+cd /dataweb
+chown nginx:nginx html/ -R
+find /dataweb/ -type d -exec chmod 775 {} +
+find /dataweb/ -type f -exec chmod 644 {} +
+
+#ubah di server block wordpress sesuaikan dengan direktori mounting ke nfs
